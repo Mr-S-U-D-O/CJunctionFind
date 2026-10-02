@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, TextInput, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import { View, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/Colors';
 
 const C = Colors.light;
@@ -13,10 +14,11 @@ interface SearchBarProps {
 export default function SearchBar({ 
   value, 
   onChangeText, 
-  placeholder = 'Search name, code, barcode...' 
+  placeholder = 'Search items by name, barcode, or code' 
 }: SearchBarProps) {
   return (
     <View style={styles.container}>
+      <Ionicons name="search" size={20} color={C.textMuted} style={styles.icon} />
       <TextInput 
         style={styles.input} 
         value={value}
@@ -32,7 +34,7 @@ export default function SearchBar({
           onPress={() => onChangeText('')}
           activeOpacity={0.6}
         >
-          <Text style={styles.clearText}>×</Text>
+          <Ionicons name="close-circle" size={20} color={C.textMuted} />
         </TouchableOpacity>
       )}
     </View>
@@ -43,11 +45,15 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: C.surface,
-    borderRadius: 8,
+    backgroundColor: C.background,
+    borderRadius: 24,
     borderWidth: 1,
     borderColor: C.border,
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
+    height: 48,
+  },
+  icon: {
+    marginRight: 8,
   },
   input: {
     flex: 1,
@@ -57,13 +63,8 @@ const styles = StyleSheet.create({
   },
   clearBtn: {
     padding: 8,
+    marginRight: -8,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  clearText: {
-    fontSize: 20,
-    color: C.textMuted,
-    fontWeight: '600',
-    lineHeight: 20,
-  }
 });

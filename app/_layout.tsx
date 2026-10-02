@@ -91,12 +91,7 @@ export default function RootLayout() {
         <Stack.Screen
           name="item/[id]"
           options={{
-            headerShown: true,
-            title: 'Item',
-            headerStyle: { backgroundColor: Colors.light.background },
-            headerTintColor: Colors.light.primary,
-            headerShadowVisible: false,
-            headerBackTitle: 'Back',
+            headerShown: false,
           }}
         />
       </Stack>

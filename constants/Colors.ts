@@ -1,13 +1,14 @@
-// Design tokens for CJunctionFinder (2025/2026 Premium Vibe)
-const PRIMARY = '#111111';       // Black for primary actions
-const ACCENT = '#FFC107';        // Gold accent for press states/highlights
+// Design tokens for CJunctionFinder (2026 Premium Vibe)
+const PRIMARY = '#171717';       // Near black for premium contrast
+const ACCENT = '#D4AF37';        // Gold accent for press states/highlights
 const BACKGROUND = '#F9FAFB';    // Soft off-white for the screen background
-const CARD = '#FFFFFF';          // Pure white for the centered cards
-const SURFACE = '#F3F4F6';       // Grey for input backgrounds
-const BORDER = '#E5E7EB';        // Light border
-const TEXT = '#111827';          // Very dark grey/black
-const TEXT_MUTED = '#6B7280';    // Neutral grey
-const ERROR = '#EF4444';         // Modern red for validation
+const CARD = '#FFFFFF';          // Pure white for cards and surfaces
+const SURFACE = '#FFFFFF';       // Pure white 
+const BORDER = '#E5E5E5';        // Light, subtle border
+const TEXT = '#171717';          // Very dark grey/black
+const TEXT_MUTED = '#737373';    // Neutral, elegant grey
+const ERROR = '#DC2626';         // Modern red for validation and markdown
+const SUCCESS = '#16A34A';       // Modern green
 
 export const Colors = {
   light: {
@@ -20,10 +21,10 @@ export const Colors = {
     text: TEXT,
     textMuted: TEXT_MUTED,
     error: ERROR,
+    success: SUCCESS,
     tabIconDefault: TEXT_MUTED,
     tabIconSelected: PRIMARY,
-    success: '#10B981',
-    overlay: 'rgba(17, 24, 39, 0.4)',
+    overlay: 'rgba(23, 23, 23, 0.4)',
   },
 };
 

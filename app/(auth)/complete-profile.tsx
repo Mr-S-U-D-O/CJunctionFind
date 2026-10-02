@@ -10,9 +10,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
-  Pressable,
+  TouchableOpacity,
   ScrollView,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/Colors';
 import { supabase } from '../../lib/supabase';
 import { STORES } from '../../constants/Stores';
@@ -80,76 +81,87 @@ export default function CompleteProfileScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.kav}>
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           
-          <View style={styles.card}>
-            <View style={styles.header}>
-              <Text style={styles.stepText}>Step 1 of 1</Text>
-              <Text style={styles.heading}>Complete Profile</Text>
-              <Text style={styles.subheading}>Set up your staff account</Text>
+          <View style={styles.header}>
+            <View style={styles.iconWrap}>
+              <Ionicons name="person-add" size={32} color={C.accent} />
             </View>
+            <Text style={styles.stepText}>Final Step</Text>
+            <Text style={styles.heading}>Complete Profile</Text>
+            <Text style={styles.subheading}>Set up your staff account</Text>
+          </View>
 
+          <View style={styles.card}>
             {hasError && (
               <View style={styles.errorBox}>
+                <Ionicons name="alert-circle" size={20} color={C.error} style={{ marginRight: 8 }} />
                 <Text style={styles.errorText}>{errorMsg}</Text>
               </View>
             )}
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Full Name</Text>
-              <TextInput
-                style={[styles.input, hasError && styles.inputError]}
-                value={fullName}
-                onChangeText={(t) => { setFullName(t); setErrorMsg(''); }}
-                placeholder="Amahle Dlamini"
-                placeholderTextColor={C.textMuted}
-                autoCapitalize="words"
-              />
+              <View style={[styles.inputWrapper, hasError && styles.inputError]}>
+                <Ionicons name="person-outline" size={20} color="#737373" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  value={fullName}
+                  onChangeText={(t) => { setFullName(t); setErrorMsg(''); }}
+                  placeholder="Amahle Dlamini"
+                  placeholderTextColor="#525252"
+                  autoCapitalize="words"
+                />
+              </View>
             </View>
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Employee Number</Text>
-              <TextInput
-                style={[styles.input, hasError && styles.inputError]}
-                value={employeeNumber}
-                onChangeText={(t) => { setEmployeeNumber(t); setErrorMsg(''); }}
-                placeholder="EMP12345"
-                placeholderTextColor={C.textMuted}
-                autoCapitalize="characters"
-                autoCorrect={false}
-              />
+              <View style={[styles.inputWrapper, hasError && styles.inputError]}>
+                <Ionicons name="id-card-outline" size={20} color="#737373" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  value={employeeNumber}
+                  onChangeText={(t) => { setEmployeeNumber(t); setErrorMsg(''); }}
+                  placeholder="EMP12345"
+                  placeholderTextColor="#525252"
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                />
+              </View>
             </View>
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Primary Store</Text>
-              <Pressable
-                style={({ pressed }) => [
+              <TouchableOpacity
+                style={[
                   styles.pickerTrigger,
-                  pressed && styles.pickerTriggerActive,
                   hasError && styles.inputError
                 ]}
                 onPress={() => setShowPicker(true)}
+                activeOpacity={0.8}
               >
+                <Ionicons name="storefront-outline" size={20} color="#737373" style={styles.inputIcon} />
                 <Text style={primaryStore ? styles.pickerValueText : styles.pickerPlaceholderText}>
                   {primaryStore || 'Select your store'}
                 </Text>
-                <Text style={styles.pickerChevron}>›</Text>
-              </Pressable>
+                <Ionicons name="chevron-down" size={20} color="#737373" />
+              </TouchableOpacity>
             </View>
 
-            <Pressable 
-              style={({ pressed }) => [
+            <TouchableOpacity 
+              style={[
                 styles.primaryBtn, 
-                pressed && isFormComplete && styles.primaryBtnPressed,
                 (!isFormComplete || loading) && styles.btnDisabled
               ]} 
               onPress={handleSubmit}
+              activeOpacity={0.8}
               disabled={!isFormComplete || loading}
             >
               {loading ? (
-                <ActivityIndicator color={C.card} size="small" />
+                <ActivityIndicator color="#000" size="small" />
               ) : (
                 <Text style={styles.primaryBtnText}>Save & Continue</Text>
               )}
-            </Pressable>
+            </TouchableOpacity>
           </View>
 
         </ScrollView>
@@ -161,18 +173,19 @@ export default function CompleteProfileScreen() {
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalHeading}>Select Store</Text>
-              <Pressable onPress={() => setShowPicker(false)} hitSlop={10}>
+              <TouchableOpacity onPress={() => setShowPicker(false)} hitSlop={10}>
                 <Text style={styles.closeText}>Close</Text>
-              </Pressable>
+              </TouchableOpacity>
             </View>
             
             <View style={styles.searchContainer}>
+              <Ionicons name="search" size={20} color="#737373" style={{ marginRight: 12 }} />
               <TextInput
                 style={styles.searchInput}
                 value={storeSearchQuery}
                 onChangeText={setStoreSearchQuery}
                 placeholder="Search stores..."
-                placeholderTextColor={C.textMuted}
+                placeholderTextColor="#525252"
                 autoCorrect={false}
                 clearButtonMode="while-editing"
               />
@@ -186,14 +199,16 @@ export default function CompleteProfileScreen() {
               keyboardShouldPersistTaps="handled"
               ItemSeparatorComponent={() => <View style={styles.separator} />}
               ListEmptyComponent={
-                <Text style={styles.emptyText}>No stores found matching "{storeSearchQuery}"</Text>
+                <View style={styles.emptyContainer}>
+                  <Ionicons name="search-outline" size={40} color="#333" />
+                  <Text style={styles.emptyText}>No stores found</Text>
+                </View>
               }
               renderItem={({ item }) => (
-                <Pressable
-                  style={({ pressed }) => [
+                <TouchableOpacity
+                  style={[
                     styles.storeRow,
-                    item === primaryStore && styles.storeRowSelected,
-                    pressed && styles.storeRowPressed
+                    item === primaryStore && styles.storeRowSelected
                   ]}
                   onPress={() => {
                     setPrimaryStore(item);
@@ -201,6 +216,7 @@ export default function CompleteProfileScreen() {
                     setShowPicker(false);
                     setErrorMsg('');
                   }}
+                  activeOpacity={0.7}
                 >
                   <Text style={[
                     styles.storeRowText,
@@ -209,9 +225,9 @@ export default function CompleteProfileScreen() {
                     {item}
                   </Text>
                   {item === primaryStore && (
-                    <Text style={styles.checkmark}>✓</Text>
+                    <Ionicons name="checkmark-circle" size={24} color={C.accent} />
                   )}
-                </Pressable>
+                </TouchableOpacity>
               )}
             />
           </View>
@@ -224,7 +240,7 @@ export default function CompleteProfileScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: C.background,
+    backgroundColor: '#000000',
   },
   kav: {
     flex: 1,
@@ -235,20 +251,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 40,
   },
-  card: {
-    backgroundColor: C.card,
-    borderRadius: 24,
-    padding: 32,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.04,
-    shadowRadius: 32,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.02)',
-  },
   header: {
+    alignItems: 'center',
     marginBottom: 40,
+  },
+  iconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    backgroundColor: '#171717',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#333',
   },
   stepText: {
     fontFamily: 'Inter_600SemiBold',
@@ -260,122 +276,125 @@ const styles = StyleSheet.create({
   },
   heading: {
     fontFamily: 'Inter_700Bold',
-    fontSize: 28,
-    color: C.text,
+    fontSize: 32,
+    color: '#FFF',
     letterSpacing: -0.5,
   },
   subheading: {
     fontFamily: 'Inter_400Regular',
     fontSize: 15,
-    color: C.textMuted,
+    color: '#A3A3A3',
     marginTop: 6,
   },
+  card: {
+    backgroundColor: '#111111',
+    borderRadius: 24,
+    padding: 32,
+    borderWidth: 1,
+    borderColor: '#262626',
+  },
   errorBox: {
-    backgroundColor: '#FEF2F2',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(220, 38, 38, 0.1)',
     padding: 14,
     borderRadius: 12,
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: '#FECACA',
+    borderColor: 'rgba(220, 38, 38, 0.3)',
   },
   errorText: {
     fontFamily: 'Inter_500Medium',
     color: C.error,
     fontSize: 13,
+    flex: 1,
   },
   inputGroup: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   label: {
     fontFamily: 'Inter_500Medium',
     fontSize: 13,
-    color: C.text,
+    color: '#A3A3A3',
     marginBottom: 8,
     marginLeft: 4,
   },
-  input: {
-    fontFamily: 'Inter_400Regular',
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
     height: 56,
-    backgroundColor: C.surface,
+    backgroundColor: '#171717',
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: '#333333',
     borderRadius: 14,
     paddingHorizontal: 16,
+  },
+  inputIcon: {
+    marginRight: 12,
+  },
+  input: {
+    flex: 1,
+    fontFamily: 'Inter_400Regular',
     fontSize: 16,
-    color: C.text,
+    color: '#FFF',
+    height: '100%',
   },
   inputError: {
     borderColor: C.error,
-    backgroundColor: '#FEF2F2',
+    backgroundColor: 'rgba(220, 38, 38, 0.05)',
   },
   pickerTrigger: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     height: 56,
-    backgroundColor: C.surface,
+    backgroundColor: '#171717',
+    borderWidth: 1,
+    borderColor: '#333333',
     borderRadius: 14,
     paddingHorizontal: 16,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  pickerTriggerActive: {
-    opacity: 0.7,
   },
   pickerValueText: {
     fontFamily: 'Inter_500Medium',
     fontSize: 16,
-    color: C.text,
+    color: '#FFF',
     flex: 1,
   },
   pickerPlaceholderText: {
     fontFamily: 'Inter_400Regular',
     fontSize: 16,
-    color: C.textMuted,
+    color: '#525252',
     flex: 1,
-  },
-  pickerChevron: {
-    fontFamily: 'Inter_500Medium',
-    fontSize: 20,
-    color: C.textMuted,
-    marginLeft: 8,
   },
   primaryBtn: {
     height: 56,
-    backgroundColor: C.primary,
+    backgroundColor: C.accent,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 12,
     borderRadius: 14,
   },
-  primaryBtnPressed: {
-    backgroundColor: C.accent,
-  },
   btnDisabled: {
     opacity: 0.5,
   },
   primaryBtnText: {
-    fontFamily: 'Inter_600SemiBold',
-    color: C.card, 
+    fontFamily: 'Inter_700Bold',
+    color: '#000', 
     fontSize: 16,
   },
   // Modal
   modalOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: C.overlay,
+    backgroundColor: 'rgba(0,0,0,0.6)',
   },
   modalSheet: {
-    backgroundColor: C.card,
+    backgroundColor: '#111111',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     height: '85%',
-    paddingTop: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 10,
+    paddingTop: 20,
+    borderWidth: 1,
+    borderColor: '#333',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -387,32 +406,38 @@ const styles = StyleSheet.create({
   modalHeading: {
     fontFamily: 'Inter_700Bold',
     fontSize: 18,
-    color: C.text,
+    color: '#FFF',
   },
   closeText: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 15,
-    color: C.primary,
+    color: C.accent,
   },
   searchContainer: {
-    paddingHorizontal: 24,
-    marginBottom: 8,
-  },
-  searchInput: {
-    fontFamily: 'Inter_400Regular',
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 24,
+    marginBottom: 16,
     height: 50,
-    backgroundColor: C.surface,
+    backgroundColor: '#171717',
     borderRadius: 12,
     paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  searchInput: {
+    flex: 1,
+    fontFamily: 'Inter_400Regular',
     fontSize: 16,
-    color: C.text,
+    color: '#FFF',
+    height: '100%',
   },
   listContent: {
     paddingBottom: 40,
   },
   separator: {
     height: 1,
-    backgroundColor: C.border,
+    backgroundColor: '#262626',
     marginHorizontal: 24,
   },
   storeRow: {
@@ -422,33 +447,27 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     paddingHorizontal: 24,
   },
-  storeRowPressed: {
-    backgroundColor: C.surface,
-  },
   storeRowSelected: {
-    backgroundColor: '#FFFBEB', // very light yellow/gold tint
+    backgroundColor: 'rgba(212, 175, 55, 0.1)',
   },
   storeRowText: {
     fontFamily: 'Inter_400Regular',
     fontSize: 16,
-    color: C.text,
+    color: '#CCC',
     flex: 1,
   },
   storeRowTextSelected: {
     fontFamily: 'Inter_600SemiBold',
-    color: C.primary,
-  },
-  checkmark: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 18,
     color: C.accent,
-    marginLeft: 12,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    marginTop: 40,
   },
   emptyText: {
     fontFamily: 'Inter_400Regular',
     fontSize: 15,
-    color: C.textMuted,
-    textAlign: 'center',
-    marginTop: 40,
+    color: '#737373',
+    marginTop: 12,
   },
 });

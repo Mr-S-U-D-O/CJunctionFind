@@ -1,46 +1,42 @@
 import { Tabs } from 'expo-router';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/Colors';
 
 const C = Colors.light;
-
-// Minimal dot indicator for active tab
-function TabIcon({ active }: { active: boolean }) {
-  return (
-    <View style={[styles.dot, active && styles.dotActive]} />
-  );
-}
 
 export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
+        headerShown: false,
         headerStyle: {
           backgroundColor: C.background,
         },
         headerShadowVisible: false,
         headerTitleStyle: {
           color: C.text,
-          fontSize: 17,
-          fontWeight: '600',
-          letterSpacing: -0.3,
+          fontSize: 18,
+          fontWeight: '700',
+          letterSpacing: -0.5,
         },
         headerTintColor: C.primary,
         tabBarStyle: {
           backgroundColor: C.surface,
           borderTopWidth: 1,
           borderTopColor: C.border,
-          height: 60,
-          paddingBottom: 8,
+          height: Platform.OS === 'ios' ? 88 : 68,
+          paddingBottom: Platform.OS === 'ios' ? 28 : 12,
+          paddingTop: 12,
           elevation: 0,
           shadowOpacity: 0,
         },
         tabBarLabelStyle: {
           fontSize: 11,
-          fontWeight: '500',
-          letterSpacing: 0.3,
+          fontWeight: '600',
+          marginTop: 4,
         },
-        tabBarActiveTintColor: C.primary,
+        tabBarActiveTintColor: C.accent,
         tabBarInactiveTintColor: C.textMuted,
       }}
     >
@@ -48,37 +44,32 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: 'Find',
-          headerTitle: 'Find Items',
-          tabBarLabel: 'Find',
+          headerTitle: 'Inventory',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="search" size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="add-item"
         options={{
           title: 'Add Item',
-          tabBarLabel: 'Add',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="add-circle" size={size + 2} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarLabel: 'Profile',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person" size={size} color={color} />
+          ),
         }}
       />
     </Tabs>
   );
 }
 
-const styles = StyleSheet.create({
-  dot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'transparent',
-    marginTop: 2,
-  },
-  dotActive: {
-    backgroundColor: Colors.light.primary,
-  },
-});
+const styles = StyleSheet.create({});
