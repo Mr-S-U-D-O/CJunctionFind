@@ -1,66 +1,102 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, createContext } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { Colors } from '../constants/Colors';
+import { supabase } from '../lib/supabase';
+import { Session } from '@supabase/supabase-js';
+
+export const AuthContext = createContext({
+  refreshProfile: async () => {},
+});
 
 export default function RootLayout() {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  const [isProfileComplete, setIsProfileComplete] = useState<boolean | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [hasProfile, setHasProfile] = useState<boolean | null>(null);
+  const [isInitializing, setIsInitializing] = useState(true);
   const segments = useSegments();
   const router = useRouter();
 
+  const checkProfile = async (userId: string) => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', userId)
+      .maybeSingle();
+    setHasProfile(!!data);
+  };
+
   useEffect(() => {
-    // Mock Auth Check - replace with real Supabase session check later
-    setTimeout(() => {
-      setIsAuthenticated(false); // Defaulting to false to show login screen
-      setIsProfileComplete(false);
-    }, 500);
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      setSession(session);
+      if (session?.user) await checkProfile(session.user.id);
+      else setHasProfile(null);
+      setIsInitializing(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        setSession(session);
+        if (session?.user) await checkProfile(session.user.id);
+        else setHasProfile(null);
+        setIsInitializing(false);
+      }
+    );
+
+    return () => subscription.unsubscribe();
   }, []);
 
+  const refreshProfile = async () => {
+    if (session?.user) await checkProfile(session.user.id);
+  };
+
   useEffect(() => {
-    if (isAuthenticated === null) return;
+    if (isInitializing) return;
 
     const inAuthGroup = segments[0] === '(auth)';
-    
-    if (!isAuthenticated && !inAuthGroup) {
-      router.replace('/(auth)/login');
-    } else if (isAuthenticated) {
-      if (!isProfileComplete && (segments as string[])[1] !== 'complete-profile') {
+    const currentSegments = segments as string[];
+
+    if (!session) {
+      if (!inAuthGroup) router.replace('/(auth)/login');
+    } else {
+      if (hasProfile === false && currentSegments.join('/') !== '(auth)/complete-profile') {
         router.replace('/(auth)/complete-profile');
-      } else if (isProfileComplete && inAuthGroup) {
+      } else if (hasProfile === true && inAuthGroup) {
         router.replace('/(tabs)');
       }
     }
-  }, [isAuthenticated, isProfileComplete, segments]);
+  }, [session, hasProfile, isInitializing, segments]);
 
-  if (isAuthenticated === null) {
+  if (isInitializing) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.light.primary} />
+      <View style={styles.splash}>
+        <ActivityIndicator size="small" color={Colors.light.primary} />
       </View>
     );
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(auth)" />
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen 
-        name="item/[id]" 
-        options={{ 
-          presentation: 'modal', 
-          headerShown: true, 
-          title: 'Item Details',
-          headerStyle: { backgroundColor: Colors.light.background },
-          headerTintColor: Colors.light.primary,
-        }} 
-      />
-    </Stack>
+    <AuthContext.Provider value={{ refreshProfile }}>
+      <Stack screenOptions={{ headerShown: false, animation: 'fade' }}>
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen
+          name="item/[id]"
+          options={{
+            headerShown: true,
+            title: 'Item',
+            headerStyle: { backgroundColor: Colors.light.background },
+            headerTintColor: Colors.light.primary,
+            headerShadowVisible: false,
+            headerBackTitle: 'Back',
+          }}
+        />
+      </Stack>
+    </AuthContext.Provider>
   );
 }
 
 const styles = StyleSheet.create({
-  loadingContainer: {
+  splash: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',

@@ -4,17 +4,19 @@ import { Link } from 'expo-router';
 import { Item } from '../lib/types';
 import { Colors } from '../constants/Colors';
 
+const C = Colors.light;
+
 export default function ItemCard({ item }: { item: Item }) {
   return (
     <Link href={`/item/${item.id}`} asChild>
-      <TouchableOpacity style={styles.card}>
+      <TouchableOpacity style={styles.card} activeOpacity={0.7}>
         <View style={styles.info}>
           <Text style={styles.name}>{item.name}</Text>
-          <Text style={styles.store}>{item.store_location}</Text>
+          <Text style={styles.store}>{item.store_added}</Text>
         </View>
         <View style={styles.priceContainer}>
-          <Text style={styles.price}>${item.price.toFixed(2)}</Text>
-          <Text style={styles.condition}>{item.condition}</Text>
+          <Text style={styles.price}>R{item.price?.toFixed(2) ?? 'N/A'}</Text>
+          <Text style={styles.condition}>{item.department}</Text>
         </View>
       </TouchableOpacity>
     </Link>
@@ -23,42 +25,41 @@ export default function ItemCard({ item }: { item: Item }) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.light.surface,
+    backgroundColor: C.surface,
     borderRadius: 8,
     padding: 16,
     marginBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    shadowColor: Colors.light.text,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: C.border,
   },
   info: {
     flex: 1,
+    paddingRight: 12,
   },
   name: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Colors.light.text,
+    fontSize: 15,
+    fontWeight: '600',
+    color: C.text,
     marginBottom: 4,
+    lineHeight: 20,
   },
   store: {
-    fontSize: 14,
-    color: Colors.light.textLight,
+    fontSize: 13,
+    color: C.textMuted,
   },
   priceContainer: {
     alignItems: 'flex-end',
   },
   price: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.light.accent,
+    fontSize: 16,
+    fontWeight: '700',
+    color: C.text,
   },
   condition: {
     fontSize: 12,
-    color: Colors.light.textLight,
+    color: C.textMuted,
     marginTop: 4,
   }
 });

@@ -12,7 +12,7 @@ export default function SearchBar({ placeholder = 'Search...' }: SearchBarProps)
       <TextInput 
         style={styles.input} 
         placeholder={placeholder}
-        placeholderTextColor={Colors.light.textLight}
+        placeholderTextColor={Colors.light.textMuted}
       />
     </View>
   );
