@@ -1,21 +1,20 @@
-// Design tokens for CJunctionFind
-// Brand: Clothing Junction — deep chocolate brown + warm gold
-// Aesthetic: premium utilitarian, editorial minimalism
-
-const PRIMARY = '#4A2C0A';       // Chocolate brown
-const ACCENT = '#C9A227';        // Warm gold
-const CANVAS = '#F9F7F3';        // Off-white canvas
-const SURFACE = '#FFFFFF';       // Pure white for inputs/cards
-const BORDER = '#E8DDD3';        // Warm light border
-const TEXT = '#1C1008';          // Near-black, warm undertone
-const TEXT_MUTED = '#8A7060';    // Muted brown-grey
-const ERROR = '#B33A26';         // Deep red, brand-warm
+// Design tokens for CJunctionFinder (2025/2026 Premium Vibe)
+const PRIMARY = '#111111';       // Black for primary actions
+const ACCENT = '#FFC107';        // Gold accent for press states/highlights
+const BACKGROUND = '#F9FAFB';    // Soft off-white for the screen background
+const CARD = '#FFFFFF';          // Pure white for the centered cards
+const SURFACE = '#F3F4F6';       // Grey for input backgrounds
+const BORDER = '#E5E7EB';        // Light border
+const TEXT = '#111827';          // Very dark grey/black
+const TEXT_MUTED = '#6B7280';    // Neutral grey
+const ERROR = '#EF4444';         // Modern red for validation
 
 export const Colors = {
   light: {
     primary: PRIMARY,
     accent: ACCENT,
-    background: CANVAS,
+    background: BACKGROUND,
+    card: CARD,
     surface: SURFACE,
     border: BORDER,
     text: TEXT,
@@ -23,10 +22,8 @@ export const Colors = {
     error: ERROR,
     tabIconDefault: TEXT_MUTED,
     tabIconSelected: PRIMARY,
-    // Semantic
-    success: '#2E6B3E',
-    // Scrim
-    overlay: 'rgba(28, 16, 8, 0.5)',
+    success: '#10B981',
+    overlay: 'rgba(17, 24, 39, 0.4)',
   },
 };
 

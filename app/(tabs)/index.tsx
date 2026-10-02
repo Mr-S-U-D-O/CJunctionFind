@@ -1,133 +1,127 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
-  TextInput,
   TouchableOpacity,
   SafeAreaView,
+  Alert,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
-import { Link } from 'expo-router';
 import { Colors } from '../../constants/Colors';
+import { supabase } from '../../lib/supabase';
 import { Item } from '../../lib/types';
+import SearchBar from '../../components/SearchBar';
+import ItemCard from '../../components/ItemCard';
 
 const C = Colors.light;
 
-// Placeholder data — replace with real Supabase query later
-const MOCK_ITEMS: Item[] = [
-  {
-    id: '1',
-    name: 'LDS S/S CHOC SIDE RUCHED CRINKLE BODYCON MAXI DRESS',
-    long_code: '300630001',
-    short_code: 'FC7025',
-    barcode: '2000001291962',
-    size: '10',
-    colour: 'Chocolate',
-    department: 'Ladies',
-    price: 299,
-    original_price: 399,
-    is_marked_down: true,
-    is_on_flash: false,
-    photos: [],
-    notes: null,
-    added_by: '',
-    store_added: 'Clothing Junction - The Glen',
-    created_at: '',
-    updated_at: '',
-  },
-  {
-    id: '2',
-    name: 'MNS SLIM FIT STRETCH CHINO TROUSER',
-    long_code: '300420088',
-    short_code: 'MC3201',
-    barcode: '2000001384458',
-    size: '32',
-    colour: 'Khaki',
-    department: 'Mens',
-    price: 349,
-    original_price: null,
-    is_marked_down: false,
-    is_on_flash: true,
-    photos: [],
-    notes: null,
-    added_by: '',
-    store_added: 'Clothing Junction - Festival Mall',
-    created_at: '',
-    updated_at: '',
-  },
-];
-
-function ItemRow({ item }: { item: Item }) {
-  return (
-    <Link href={`/item/${item.id}`} asChild>
-      <TouchableOpacity style={styles.row} activeOpacity={0.7}>
-        {/* Colour swatch placeholder */}
-        <View style={styles.swatch} />
-
-        <View style={styles.rowBody}>
-          <Text style={styles.rowName} numberOfLines={2}>{item.name}</Text>
-          <View style={styles.rowMeta}>
-            {item.short_code && (
-              <Text style={styles.code}>{item.short_code}</Text>
-            )}
-            {item.size && (
-              <Text style={styles.metaChip}>{item.size}</Text>
-            )}
-            {item.department && (
-              <Text style={styles.metaChip}>{item.department}</Text>
-            )}
-          </View>
-        </View>
-
-        <View style={styles.rowRight}>
-          {item.is_on_flash && (
-            <View style={styles.flashBadge}>
-              <Text style={styles.flashText}>FLASH</Text>
-            </View>
-          )}
-          <Text style={styles.price}>R{item.price}</Text>
-          {item.is_marked_down && item.original_price && (
-            <Text style={styles.originalPrice}>R{item.original_price}</Text>
-          )}
-        </View>
-      </TouchableOpacity>
-    </Link>
-  );
-}
-
 export default function FindScreen() {
-  const [query, setQuery] = React.useState('');
+  const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [items, setItems] = useState<Item[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Debounce query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(query);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  const fetchItems = useCallback(async (searchQuery: string, isRefresh = false) => {
+    if (!isRefresh) setLoading(true);
+    setError(null);
+    try {
+      let q = supabase
+        .from('items')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (searchQuery.trim()) {
+        const term = `%${searchQuery.trim()}%`;
+        q = q.or(
+          `name.ilike.${term},long_code.ilike.${term},short_code.ilike.${term},barcode.ilike.${term},colour.ilike.${term},size.ilike.${term}`
+        );
+      }
+
+      const { data, error: fetchError } = await q;
+
+      if (fetchError) throw fetchError;
+      setItems(data as Item[] || []);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'Failed to fetch items');
+    } finally {
+      if (!isRefresh) setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  // Fetch when debounced query changes
+  useEffect(() => {
+    fetchItems(debouncedQuery);
+  }, [debouncedQuery, fetchItems]);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchItems(debouncedQuery, true);
+  };
+
+  const handleScanPress = () => {
+    Alert.alert('Coming soon', 'Barcode scanner will open here.');
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
-      {/* Search bar */}
-      <View style={styles.searchBar}>
-        <TextInput
-          style={styles.searchInput}
-          value={query}
-          onChangeText={setQuery}
-          placeholder="Barcode, code, or name..."
-          placeholderTextColor={C.textMuted}
-          autoCorrect={false}
-          clearButtonMode="while-editing"
+      <View style={styles.header}>
+        <SearchBar 
+          value={query} 
+          onChangeText={setQuery} 
         />
+        
+        <TouchableOpacity style={styles.scanBtn} onPress={handleScanPress} activeOpacity={0.85}>
+          <Text style={styles.scanBtnText}>Scan Barcode</Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Results */}
-      <FlatList
-        data={MOCK_ITEMS}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>No items</Text>
-            <Text style={styles.emptyBody}>Search by barcode, short code, or item name.</Text>
-          </View>
-        }
-        renderItem={({ item }) => <ItemRow item={item} />}
-      />
+      {error && (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      )}
+
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={C.primary} />
+        </View>
+      ) : (
+        <FlatList
+          data={items}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.list}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={C.primary} />
+          }
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Text style={styles.emptyTitle}>No items found</Text>
+              <Text style={styles.emptyBody}>
+                {query.trim() 
+                  ? 'Try a different search term or scan a barcode.' 
+                  : 'Start searching or add new items to the inventory.'}
+              </Text>
+            </View>
+          }
+          renderItem={({ item }) => <ItemCard item={item} />}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -137,112 +131,48 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: C.background,
   },
-  searchBar: {
+  header: {
     paddingHorizontal: 16,
     paddingVertical: 12,
+    backgroundColor: C.surface,
     borderBottomWidth: 1,
     borderBottomColor: C.border,
-    backgroundColor: C.surface,
-  },
-  searchInput: {
-    height: 40,
-    backgroundColor: C.background,
-    borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    fontSize: 14,
-    color: C.text,
-  },
-  list: {
-    paddingBottom: 24,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: C.border,
-    marginLeft: 16,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    backgroundColor: C.surface,
     gap: 12,
   },
-  swatch: {
-    width: 44,
-    height: 44,
-    borderRadius: 6,
-    backgroundColor: C.background,
-    borderWidth: 1,
-    borderColor: C.border,
+  scanBtn: {
+    height: 48,
+    backgroundColor: C.primary,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  rowBody: {
-    flex: 1,
-  },
-  rowName: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: C.text,
-    lineHeight: 18,
-    marginBottom: 5,
-  },
-  rowMeta: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 4,
-  },
-  code: {
-    fontSize: 11,
-    fontFamily: 'monospace',
-    color: C.textMuted,
-    backgroundColor: C.background,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: C.border,
-    overflow: 'hidden',
-  },
-  metaChip: {
-    fontSize: 11,
-    color: C.textMuted,
-    backgroundColor: C.background,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: C.border,
-    overflow: 'hidden',
-  },
-  rowRight: {
-    alignItems: 'flex-end',
-    minWidth: 56,
-  },
-  price: {
+  scanBtnText: {
+    color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '700',
-    color: C.text,
+    letterSpacing: 0.2,
   },
-  originalPrice: {
-    fontSize: 12,
-    color: C.textMuted,
-    textDecorationLine: 'line-through',
-    marginTop: 2,
+  list: {
+    padding: 16,
+    paddingBottom: 24,
   },
-  flashBadge: {
-    backgroundColor: C.accent,
-    borderRadius: 3,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    marginBottom: 4,
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  flashText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    letterSpacing: 0.5,
+  errorContainer: {
+    padding: 16,
+    backgroundColor: '#FFE3E3',
+    margin: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: C.error,
+  },
+  errorText: {
+    color: C.error,
+    fontSize: 14,
+    fontWeight: '500',
   },
   empty: {
     paddingTop: 80,
@@ -250,10 +180,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
   emptyTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
     color: C.text,
-    marginBottom: 6,
+    marginBottom: 8,
   },
   emptyBody: {
     fontSize: 14,

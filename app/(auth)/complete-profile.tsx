@@ -1,9 +1,8 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
   TextInput,
   ActivityIndicator,
   Modal,
@@ -11,7 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
-  Alert,
+  Pressable,
   ScrollView,
 } from 'react-native';
 import { Colors } from '../../constants/Colors';
@@ -28,20 +27,21 @@ export default function CompleteProfileScreen() {
   const [employeeNumber, setEmployeeNumber] = useState('');
   const [primaryStore, setPrimaryStore] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  // Store Modal State
   const [showPicker, setShowPicker] = useState(false);
-  const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [storeSearchQuery, setStoreSearchQuery] = useState('');
+
+  const filteredStores = useMemo(() => {
+    if (!storeSearchQuery.trim()) return STORES;
+    return STORES.filter((s) => s.toLowerCase().includes(storeSearchQuery.toLowerCase()));
+  }, [storeSearchQuery]);
 
   const handleSubmit = async () => {
-    if (!fullName.trim()) {
-      Alert.alert('Required', 'Enter your full name.');
-      return;
-    }
-    if (!employeeNumber.trim()) {
-      Alert.alert('Required', 'Enter your employee number.');
-      return;
-    }
-    if (!primaryStore) {
-      Alert.alert('Required', 'Select your primary store.');
+    setErrorMsg('');
+    if (!fullName.trim() || !employeeNumber.trim() || !primaryStore) {
+      setErrorMsg('Please fill in all details.');
       return;
     }
 
@@ -66,145 +66,154 @@ export default function CompleteProfileScreen() {
 
       await refreshProfile();
     } catch (e: any) {
-      Alert.alert('Error', e.message ?? 'Something went wrong. Try again.');
+      setErrorMsg(e.message ?? 'Something went wrong. Try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const inputStyle = (field: string) => [
-    styles.input,
-    focusedField === field && styles.inputFocused,
-  ];
+  const hasError = errorMsg.length > 0;
+  const isFormComplete = fullName.trim() && employeeNumber.trim() && primaryStore;
 
   return (
     <SafeAreaView style={styles.safe}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.kav}
-      >
-        <ScrollView
-          contentContainerStyle={styles.container}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Wordmark */}
-          <View style={styles.wordmarkRow}>
-            <View style={styles.logoMark} />
-            <Text style={styles.wordmark}>Clothing Junction</Text>
-          </View>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.kav}>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          
+          <View style={styles.card}>
+            <View style={styles.header}>
+              <Text style={styles.stepText}>Step 1 of 1</Text>
+              <Text style={styles.heading}>Complete Profile</Text>
+              <Text style={styles.subheading}>Set up your staff account</Text>
+            </View>
 
-          <Text style={styles.heading}>Your details</Text>
-          <Text style={styles.subheading}>
-            This only takes a moment. You cannot change your employee number later.
-          </Text>
-
-          {/* Full name */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Full name</Text>
-            <TextInput
-              style={inputStyle('name')}
-              value={fullName}
-              onChangeText={setFullName}
-              onFocus={() => setFocusedField('name')}
-              onBlur={() => setFocusedField(null)}
-              placeholder="e.g. Amahle Dlamini"
-              placeholderTextColor={C.textMuted}
-              autoCapitalize="words"
-            />
-          </View>
-
-          {/* Employee number */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Employee number</Text>
-            <TextInput
-              style={inputStyle('emp')}
-              value={employeeNumber}
-              onChangeText={setEmployeeNumber}
-              onFocus={() => setFocusedField('emp')}
-              onBlur={() => setFocusedField(null)}
-              placeholder="e.g. EMP12345"
-              placeholderTextColor={C.textMuted}
-              autoCapitalize="characters"
-              autoCorrect={false}
-            />
-          </View>
-
-          {/* Store picker */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Primary store</Text>
-            <TouchableOpacity
-              style={[styles.input, styles.pickerTrigger, focusedField === 'store' && styles.inputFocused]}
-              onPress={() => setShowPicker(true)}
-              activeOpacity={0.7}
-            >
-              <Text style={primaryStore ? styles.pickerValueText : styles.pickerPlaceholderText}>
-                {primaryStore || 'Select your store'}
-              </Text>
-              <Text style={styles.pickerChevron}>›</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Submit */}
-          <TouchableOpacity
-            style={[styles.btn, loading && styles.btnDisabled]}
-            onPress={handleSubmit}
-            disabled={loading}
-            activeOpacity={0.85}
-          >
-            {loading ? (
-              <ActivityIndicator color={C.surface} size="small" />
-            ) : (
-              <Text style={styles.btnText}>Save and continue</Text>
+            {hasError && (
+              <View style={styles.errorBox}>
+                <Text style={styles.errorText}>{errorMsg}</Text>
+              </View>
             )}
-          </TouchableOpacity>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Full Name</Text>
+              <TextInput
+                style={[styles.input, hasError && styles.inputError]}
+                value={fullName}
+                onChangeText={(t) => { setFullName(t); setErrorMsg(''); }}
+                placeholder="Amahle Dlamini"
+                placeholderTextColor={C.textMuted}
+                autoCapitalize="words"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Employee Number</Text>
+              <TextInput
+                style={[styles.input, hasError && styles.inputError]}
+                value={employeeNumber}
+                onChangeText={(t) => { setEmployeeNumber(t); setErrorMsg(''); }}
+                placeholder="EMP12345"
+                placeholderTextColor={C.textMuted}
+                autoCapitalize="characters"
+                autoCorrect={false}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Primary Store</Text>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.pickerTrigger,
+                  pressed && styles.pickerTriggerActive,
+                  hasError && styles.inputError
+                ]}
+                onPress={() => setShowPicker(true)}
+              >
+                <Text style={primaryStore ? styles.pickerValueText : styles.pickerPlaceholderText}>
+                  {primaryStore || 'Select your store'}
+                </Text>
+                <Text style={styles.pickerChevron}>›</Text>
+              </Pressable>
+            </View>
+
+            <Pressable 
+              style={({ pressed }) => [
+                styles.primaryBtn, 
+                pressed && isFormComplete && styles.primaryBtnPressed,
+                (!isFormComplete || loading) && styles.btnDisabled
+              ]} 
+              onPress={handleSubmit}
+              disabled={!isFormComplete || loading}
+            >
+              {loading ? (
+                <ActivityIndicator color={C.card} size="small" />
+              ) : (
+                <Text style={styles.primaryBtnText}>Save & Continue</Text>
+              )}
+            </Pressable>
+          </View>
+
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Store picker modal — slides up from bottom */}
+      {/* Store Picker Bottom Sheet/Modal */}
       <Modal visible={showPicker} animationType="slide" transparent presentationStyle="overFullScreen">
         <View style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
-            {/* Drag handle */}
-            <View style={styles.handle} />
-            <Text style={styles.modalHeading}>Select store</Text>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalHeading}>Select Store</Text>
+              <Pressable onPress={() => setShowPicker(false)} hitSlop={10}>
+                <Text style={styles.closeText}>Close</Text>
+              </Pressable>
+            </View>
+            
+            <View style={styles.searchContainer}>
+              <TextInput
+                style={styles.searchInput}
+                value={storeSearchQuery}
+                onChangeText={setStoreSearchQuery}
+                placeholder="Search stores..."
+                placeholderTextColor={C.textMuted}
+                autoCorrect={false}
+                clearButtonMode="while-editing"
+              />
+            </View>
 
             <FlatList
-              data={STORES}
+              data={filteredStores}
               keyExtractor={(item) => item}
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: 32 }}
+              contentContainerStyle={styles.listContent}
+              keyboardShouldPersistTaps="handled"
               ItemSeparatorComponent={() => <View style={styles.separator} />}
+              ListEmptyComponent={
+                <Text style={styles.emptyText}>No stores found matching "{storeSearchQuery}"</Text>
+              }
               renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[
+                <Pressable
+                  style={({ pressed }) => [
                     styles.storeRow,
                     item === primaryStore && styles.storeRowSelected,
+                    pressed && styles.storeRowPressed
                   ]}
                   onPress={() => {
                     setPrimaryStore(item);
+                    setStoreSearchQuery('');
                     setShowPicker(false);
+                    setErrorMsg('');
                   }}
-                  activeOpacity={0.7}
                 >
-                  <Text
-                    style={[
-                      styles.storeRowText,
-                      item === primaryStore && styles.storeRowTextSelected,
-                    ]}
-                  >
+                  <Text style={[
+                    styles.storeRowText,
+                    item === primaryStore && styles.storeRowTextSelected
+                  ]}>
                     {item}
                   </Text>
                   {item === primaryStore && (
                     <Text style={styles.checkmark}>✓</Text>
                   )}
-                </TouchableOpacity>
+                </Pressable>
               )}
             />
-
-            <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowPicker(false)}>
-              <Text style={styles.cancelBtnText}>Cancel</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -220,105 +229,135 @@ const styles = StyleSheet.create({
   kav: {
     flex: 1,
   },
-  container: {
-    paddingHorizontal: 28,
-    paddingTop: 56,
-    paddingBottom: 48,
+  scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 40,
   },
-  wordmarkRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 48,
+  card: {
+    backgroundColor: C.card,
+    borderRadius: 24,
+    padding: 32,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.04,
+    shadowRadius: 32,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.02)',
   },
-  logoMark: {
-    width: 24,
-    height: 24,
-    backgroundColor: C.primary,
-    borderRadius: 4,
-    marginRight: 10,
-  },
-  wordmark: {
-    fontSize: 14,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-    color: C.primary,
-    textTransform: 'uppercase',
-  },
-  heading: {
-    fontSize: 30,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-    color: C.text,
-    marginBottom: 6,
-  },
-  subheading: {
-    fontSize: 15,
-    color: C.textMuted,
-    lineHeight: 22,
+  header: {
     marginBottom: 40,
   },
-  fieldGroup: {
+  stepText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 12,
+    color: C.accent,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    marginBottom: 8,
+  },
+  heading: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: 28,
+    color: C.text,
+    letterSpacing: -0.5,
+  },
+  subheading: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 15,
+    color: C.textMuted,
+    marginTop: 6,
+  },
+  errorBox: {
+    backgroundColor: '#FEF2F2',
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  errorText: {
+    fontFamily: 'Inter_500Medium',
+    color: C.error,
+    fontSize: 13,
+  },
+  inputGroup: {
     marginBottom: 20,
   },
   label: {
+    fontFamily: 'Inter_500Medium',
     fontSize: 13,
-    fontWeight: '600',
     color: C.text,
     marginBottom: 8,
-    letterSpacing: 0.1,
+    marginLeft: 4,
   },
   input: {
-    height: 48,
+    fontFamily: 'Inter_400Regular',
+    height: 56,
     backgroundColor: C.surface,
     borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    fontSize: 15,
+    borderColor: 'transparent',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    fontSize: 16,
     color: C.text,
   },
-  inputFocused: {
-    borderColor: C.primary,
-    borderWidth: 1.5,
+  inputError: {
+    borderColor: C.error,
+    backgroundColor: '#FEF2F2',
   },
   pickerTrigger: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    height: 56,
+    backgroundColor: C.surface,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  pickerTriggerActive: {
+    opacity: 0.7,
   },
   pickerValueText: {
-    fontSize: 15,
+    fontFamily: 'Inter_500Medium',
+    fontSize: 16,
     color: C.text,
     flex: 1,
   },
   pickerPlaceholderText: {
-    fontSize: 15,
+    fontFamily: 'Inter_400Regular',
+    fontSize: 16,
     color: C.textMuted,
     flex: 1,
   },
   pickerChevron: {
+    fontFamily: 'Inter_500Medium',
     fontSize: 20,
     color: C.textMuted,
     marginLeft: 8,
   },
-  btn: {
-    height: 50,
+  primaryBtn: {
+    height: 56,
     backgroundColor: C.primary,
-    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
+    marginTop: 12,
+    borderRadius: 14,
+  },
+  primaryBtnPressed: {
+    backgroundColor: C.accent,
   },
   btnDisabled: {
-    opacity: 0.6,
+    opacity: 0.5,
   },
-  btnText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '600',
-    letterSpacing: 0.2,
+  primaryBtnText: {
+    fontFamily: 'Inter_600SemiBold',
+    color: C.card, 
+    fontSize: 16,
   },
   // Modal
   modalOverlay: {
@@ -327,72 +366,89 @@ const styles = StyleSheet.create({
     backgroundColor: C.overlay,
   },
   modalSheet: {
-    backgroundColor: C.background,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingTop: 12,
-    paddingHorizontal: 0,
-    maxHeight: '82%',
+    backgroundColor: C.card,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    height: '85%',
+    paddingTop: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 10,
   },
-  handle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: C.border,
-    alignSelf: 'center',
-    marginBottom: 20,
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    marginBottom: 16,
   },
   modalHeading: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'Inter_700Bold',
+    fontSize: 18,
     color: C.text,
-    letterSpacing: -0.2,
-    paddingHorizontal: 20,
+  },
+  closeText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 15,
+    color: C.primary,
+  },
+  searchContainer: {
+    paddingHorizontal: 24,
     marginBottom: 8,
+  },
+  searchInput: {
+    fontFamily: 'Inter_400Regular',
+    height: 50,
+    backgroundColor: C.surface,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    fontSize: 16,
+    color: C.text,
+  },
+  listContent: {
+    paddingBottom: 40,
   },
   separator: {
     height: 1,
     backgroundColor: C.border,
-    marginHorizontal: 20,
+    marginHorizontal: 24,
   },
   storeRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 15,
-    paddingHorizontal: 20,
+    paddingVertical: 18,
+    paddingHorizontal: 24,
+  },
+  storeRowPressed: {
+    backgroundColor: C.surface,
   },
   storeRowSelected: {
-    backgroundColor: '#F5EFE7',
+    backgroundColor: '#FFFBEB', // very light yellow/gold tint
   },
   storeRowText: {
-    fontSize: 15,
+    fontFamily: 'Inter_400Regular',
+    fontSize: 16,
     color: C.text,
     flex: 1,
   },
   storeRowTextSelected: {
+    fontFamily: 'Inter_600SemiBold',
     color: C.primary,
-    fontWeight: '600',
   },
   checkmark: {
-    fontSize: 16,
-    color: C.primary,
-    marginLeft: 8,
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 18,
+    color: C.accent,
+    marginLeft: 12,
   },
-  cancelBtn: {
-    marginHorizontal: 20,
-    marginTop: 8,
-    marginBottom: 20,
-    height: 48,
-    borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelBtnText: {
+  emptyText: {
+    fontFamily: 'Inter_400Regular',
     fontSize: 15,
     color: C.textMuted,
-    fontWeight: '500',
+    textAlign: 'center',
+    marginTop: 40,
   },
 });

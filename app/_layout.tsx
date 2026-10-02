@@ -1,6 +1,7 @@
 import { useEffect, useState, createContext } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import { Colors } from '../constants/Colors';
 import { supabase } from '../lib/supabase';
 import { Session } from '@supabase/supabase-js';
@@ -13,6 +14,14 @@ export default function RootLayout() {
   const [session, setSession] = useState<Session | null>(null);
   const [hasProfile, setHasProfile] = useState<boolean | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
+  
+  const [fontsLoaded] = useFonts({
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+  });
+
   const segments = useSegments();
   const router = useRouter();
 
@@ -66,7 +75,7 @@ export default function RootLayout() {
     }
   }, [session, hasProfile, isInitializing, segments]);
 
-  if (isInitializing) {
+  if (isInitializing || !fontsLoaded) {
     return (
       <View style={styles.splash}>
         <ActivityIndicator size="small" color={Colors.light.primary} />
