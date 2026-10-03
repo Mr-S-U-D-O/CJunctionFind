@@ -11,18 +11,21 @@ interface BarcodeScannerProps {
 
 export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
   const [error, setError] = useState<string>('');
+  const [feedback, setFeedback] = useState<string>('Scanning...');
   const videoRef = useRef<HTMLVideoElement>(null);
+  const codeReaderRef = useRef<BrowserMultiFormatReader | null>(null);
   
   useEffect(() => {
     let isMounted = true;
-    const codeReader = new BrowserMultiFormatReader();
+    codeReaderRef.current = new BrowserMultiFormatReader();
+    let notFoundCount = 0;
 
     const startScanner = async () => {
       try {
-        if (!videoRef.current) return;
+        if (!videoRef.current || !codeReaderRef.current) return;
         
         // Try to find a back camera specifically
-        const videoInputDevices = await codeReader.listVideoInputDevices();
+        const videoInputDevices = await codeReaderRef.current.listVideoInputDevices();
         let selectedDeviceId: string | null = null;
         
         for (const device of videoInputDevices) {
@@ -32,12 +35,25 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
           }
         }
         
-        await codeReader.decodeFromVideoDevice(selectedDeviceId, videoRef.current, (result, err) => {
+        await codeReaderRef.current.decodeFromVideoDevice(selectedDeviceId, videoRef.current, (result, err) => {
           if (result && isMounted) {
-            onScan(result.getText());
+            setFeedback("Scanned!");
+            if (navigator.vibrate) navigator.vibrate(200);
+            setTimeout(() => {
+              if (isMounted) onScan(result.getText());
+            }, 300);
           }
-          if (err && !(err instanceof NotFoundException)) {
-            console.error(err);
+          if (err && err instanceof NotFoundException) {
+            notFoundCount++;
+            if (notFoundCount > 30) { // Approx 3 seconds at 10fps
+              if (isMounted && feedback === 'Scanning...') {
+                setFeedback("No barcode found yet... Adjust focus.");
+                setTimeout(() => {
+                  if (isMounted) setFeedback("Scanning...");
+                }, 2000);
+              }
+              notFoundCount = 0;
+            }
           }
         });
 
@@ -53,9 +69,61 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
 
     return () => {
       isMounted = false;
-      codeReader.reset();
+      if (codeReaderRef.current) {
+        codeReaderRef.current.reset();
+      }
     };
-  }, [onScan]);
+  }, [onScan, feedback]);
+
+  const forceScanFrame = async () => {
+    if (!videoRef.current || !codeReaderRef.current) return;
+    try {
+      setFeedback("Capturing...");
+      if (navigator.vibrate) navigator.vibrate(50);
+      
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      const ctx = canvas.getContext('2d');
+      
+      if (ctx) {
+        ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+        
+        // We do a manual image decode on the snapshot
+        // We have to wait a tiny bit to allow UI to show "Capturing..."
+        await new Promise(resolve => setTimeout(resolve, 50));
+        
+        const result = await codeReaderRef.current.decode(videoRef.current);
+        setFeedback("Scanned!");
+        if (navigator.vibrate) navigator.vibrate(200);
+        setTimeout(() => onScan(result.getText()), 400);
+      }
+    } catch (err) {
+      setFeedback("Barcode not clear! Try again.");
+      if (navigator.vibrate) navigator.vibrate([50, 100, 50]);
+      setTimeout(() => setFeedback("Scanning..."), 2000);
+    }
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Intercept common volume button key codes on mobile
+      if (e.key === 'VolumeUp' || e.key === 'VolumeDown' || e.key === 'AudioVolumeUp' || e.key === 'AudioVolumeDown') {
+        e.preventDefault(); 
+        forceScanFrame();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Determine border color based on feedback
+  const getBorderColor = () => {
+    if (feedback === "Scanned!") return "rgba(34, 197, 94, 0.8)"; // Green
+    if (feedback.includes("not clear") || feedback.includes("No barcode")) return "rgba(239, 68, 68, 0.8)"; // Red
+    if (feedback === "Capturing...") return "rgba(234, 179, 8, 0.8)"; // Yellow
+    return "rgba(255, 255, 255, 0.8)"; // Default white
+  };
 
   return (
     <div style={{
@@ -101,14 +169,40 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
             top: '50%', left: '50%', 
             transform: 'translate(-50%, -50%)',
             width: '80%', height: '150px',
-            border: '2px solid rgba(255,255,255,0.8)',
+            border: `3px solid ${getBorderColor()}`,
             borderRadius: '16px',
             boxShadow: '0 0 0 4000px rgba(0,0,0,0.6)',
-            pointerEvents: 'none'
+            pointerEvents: 'none',
+            transition: 'border-color 0.3s ease'
           }}></div>
-          <p style={{ position: 'absolute', bottom: '15%', color: '#FFF', fontSize: '15px', fontWeight: 600, textAlign: 'center', width: '100%', zIndex: 10, textShadow: '0px 2px 4px rgba(0,0,0,0.8)' }}>
-            Center barcode in the box
-          </p>
+          
+          <div style={{ position: 'absolute', bottom: '15%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', width: '100%', zIndex: 10 }}>
+            <p style={{ 
+              color: getBorderColor(), 
+              fontSize: '16px', 
+              fontWeight: 700, 
+              textAlign: 'center',
+              textShadow: '0px 2px 4px rgba(0,0,0,0.8)',
+              transition: 'color 0.3s ease'
+            }}>
+              {feedback}
+            </p>
+            
+            <button 
+              onClick={forceScanFrame}
+              style={{
+                backgroundColor: '#FFF',
+                color: '#000',
+                padding: '16px 32px',
+                borderRadius: '30px',
+                fontWeight: 800,
+                fontSize: '16px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
+              }}
+            >
+              Trigger Scan (or press Volume)
+            </button>
+          </div>
         </div>
       )}
     </div>
