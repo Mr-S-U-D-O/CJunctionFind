@@ -142,21 +142,41 @@ export default function ItemDetailsScreen({ params }: { params: Promise<{ id: st
       )}
 
       {/* Image Gallery */}
-      <div style={{ width: '100%', aspectRatio: '1/1', backgroundColor: 'var(--surface)', borderBottom: '1px solid var(--border)', position: 'relative' }}>
+      <div style={{ width: '100%', aspectRatio: '1/1', backgroundColor: 'var(--surface)', borderBottom: '1px solid var(--border)', position: 'relative', overflow: 'hidden' }}>
+        <style>{`.hide-scroll::-webkit-scrollbar { display: none; }`}</style>
         {item.photos && item.photos.length > 0 ? (
           <>
-            <img src={item.photos[currentImageIndex]} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            <div 
+              className="hide-scroll"
+              style={{ display: 'flex', overflowX: 'auto', scrollSnapType: 'x mandatory', width: '100%', height: '100%', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              onScroll={(e) => {
+                const scrollLeft = (e.target as HTMLDivElement).scrollLeft;
+                const width = (e.target as HTMLDivElement).clientWidth;
+                const idx = Math.round(scrollLeft / width);
+                if (idx !== currentImageIndex) setCurrentImageIndex(idx);
+              }}
+            >
+              {item.photos.map((photo, idx) => (
+                <img 
+                  key={idx} 
+                  src={photo} 
+                  alt={`${item.name} ${idx + 1}`} 
+                  style={{ width: '100%', height: '100%', objectFit: 'contain', flexShrink: 0, scrollSnapAlign: 'start' }} 
+                />
+              ))}
+            </div>
             
             {item.photos.length > 1 && (
-              <div style={{ position: 'absolute', bottom: '16px', left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: '8px' }}>
+              <div style={{ position: 'absolute', bottom: '16px', left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: '8px', pointerEvents: 'none' }}>
                 {item.photos.map((_, idx) => (
-                  <button 
+                  <div 
                     key={idx} 
-                    onClick={() => setCurrentImageIndex(idx)}
                     style={{ 
                       width: '8px', height: '8px', borderRadius: '4px', 
-                      backgroundColor: idx === currentImageIndex ? 'var(--text)' : 'var(--border)',
-                      transition: 'background-color 0.2s'
+                      backgroundColor: idx === currentImageIndex ? 'var(--text)' : 'rgba(0,0,0,0.2)',
+                      border: idx === currentImageIndex ? 'none' : '1px solid rgba(255,255,255,0.5)',
+                      transition: 'all 0.2s',
+                      boxShadow: idx === currentImageIndex ? '0 0 4px rgba(0,0,0,0.5)' : 'none'
                     }} 
                   />
                 ))}

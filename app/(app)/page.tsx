@@ -165,7 +165,6 @@ export default function InventoryScreen() {
             <input 
               type="file" 
               accept="image/*" 
-              capture="environment" 
               onChange={handleVisualSearch} 
               style={{ display: 'none' }} 
               ref={fileInputRef}
