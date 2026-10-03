@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { DEPARTMENTS, SIZES, COMMON_COLORS } from '../../../constants/Options';
 import { Camera, Upload, X, CheckCircle, AlertCircle, ScanBarcode } from 'lucide-react';
 import BarcodeScanner from '../../../components/BarcodeScanner';
+import SearchableSelect from '../../../components/SearchableSelect';
 
 export default function AddItemScreen() {
   const router = useRouter();
@@ -251,10 +252,12 @@ export default function AddItemScreen() {
             </div>
             <div style={{ flex: 1 }}>
               <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Department *</label>
-              <select className="input-base" value={department} onChange={e => setDepartment(e.target.value)} disabled={loading}>
-                <option value="">Select...</option>
-                {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
+              <SearchableSelect 
+                options={DEPARTMENTS} 
+                value={department} 
+                onChange={setDepartment} 
+                disabled={loading} 
+              />
             </div>
           </div>
         </div>
@@ -300,17 +303,23 @@ export default function AddItemScreen() {
         <div style={{ display: 'flex', gap: '16px' }}>
           <div style={{ flex: 1 }}>
             <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Size</label>
-            <select className="input-base" value={size} onChange={e => setSize(e.target.value)} disabled={loading}>
-              <option value="">Optional</option>
-              {SIZES.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
+            <SearchableSelect 
+              options={SIZES} 
+              value={size} 
+              onChange={setSize} 
+              placeholder="Optional"
+              disabled={loading} 
+            />
           </div>
           <div style={{ flex: 1 }}>
             <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Colour</label>
-            <select className="input-base" value={colour} onChange={e => setColour(e.target.value)} disabled={loading}>
-              <option value="">Optional</option>
-              {COMMON_COLORS.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
+            <SearchableSelect 
+              options={COMMON_COLORS} 
+              value={colour} 
+              onChange={setColour} 
+              placeholder="Optional"
+              disabled={loading} 
+            />
           </div>
         </div>
 
