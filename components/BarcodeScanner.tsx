@@ -75,53 +75,10 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
     };
   }, [onScan, feedback]);
 
-  const forceScanFrame = async () => {
-    if (!videoRef.current || !codeReaderRef.current) return;
-    try {
-      setFeedback("Capturing...");
-      if (navigator.vibrate) navigator.vibrate(50);
-      
-      const canvas = document.createElement('canvas');
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
-      const ctx = canvas.getContext('2d');
-      
-      if (ctx) {
-        ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-        
-        // We do a manual image decode on the snapshot
-        // We have to wait a tiny bit to allow UI to show "Capturing..."
-        await new Promise(resolve => setTimeout(resolve, 50));
-        
-        const result = await codeReaderRef.current.decode(videoRef.current);
-        setFeedback("Scanned!");
-        if (navigator.vibrate) navigator.vibrate(200);
-        setTimeout(() => onScan(result.getText()), 400);
-      }
-    } catch (err) {
-      setFeedback("Barcode not clear! Try again.");
-      if (navigator.vibrate) navigator.vibrate([50, 100, 50]);
-      setTimeout(() => setFeedback("Scanning..."), 2000);
-    }
-  };
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Intercept common volume button key codes on mobile
-      if (e.key === 'VolumeUp' || e.key === 'VolumeDown' || e.key === 'AudioVolumeUp' || e.key === 'AudioVolumeDown') {
-        e.preventDefault(); 
-        forceScanFrame();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
   // Determine border color based on feedback
   const getBorderColor = () => {
     if (feedback === "Scanned!") return "rgba(34, 197, 94, 0.8)"; // Green
     if (feedback.includes("not clear") || feedback.includes("No barcode")) return "rgba(239, 68, 68, 0.8)"; // Red
-    if (feedback === "Capturing...") return "rgba(234, 179, 8, 0.8)"; // Yellow
     return "rgba(255, 255, 255, 0.8)"; // Default white
   };
 
@@ -176,7 +133,7 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
             transition: 'border-color 0.3s ease'
           }}></div>
           
-          <div style={{ position: 'absolute', bottom: '15%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', width: '100%', zIndex: 10 }}>
+          <div style={{ position: 'absolute', bottom: '15%', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', zIndex: 10 }}>
             <p style={{ 
               color: getBorderColor(), 
               fontSize: '16px', 
@@ -187,21 +144,6 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
             }}>
               {feedback}
             </p>
-            
-            <button 
-              onClick={forceScanFrame}
-              style={{
-                backgroundColor: '#FFF',
-                color: '#000',
-                padding: '16px 32px',
-                borderRadius: '30px',
-                fontWeight: 800,
-                fontSize: '16px',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
-              }}
-            >
-              Trigger Scan (or press Volume)
-            </button>
           </div>
         </div>
       )}
