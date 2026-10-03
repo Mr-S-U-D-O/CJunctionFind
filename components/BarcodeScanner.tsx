@@ -24,18 +24,18 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
       try {
         if (!videoRef.current || !codeReaderRef.current) return;
         
-        // Try to find a back camera specifically
-        const videoInputDevices = await codeReaderRef.current.listVideoInputDevices();
-        let selectedDeviceId: string | null = null;
-        
-        for (const device of videoInputDevices) {
-          if (device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('environment')) {
-            selectedDeviceId = device.deviceId;
-            break;
+        // Request high-resolution back camera with continuous auto-focus if supported
+        const constraints = {
+          video: {
+            facingMode: 'environment',
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+            // TS doesn't officially know 'focusMode' yet in all definitions
+            advanced: [{ focusMode: "continuous" } as any]
           }
-        }
+        };
         
-        await codeReaderRef.current.decodeFromVideoDevice(selectedDeviceId, videoRef.current, (result, err) => {
+        await codeReaderRef.current.decodeFromConstraints(constraints, videoRef.current, (result, err) => {
           if (result && isMounted) {
             setFeedback("Scanned!");
             if (navigator.vibrate) navigator.vibrate(200);
