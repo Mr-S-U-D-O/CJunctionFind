@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Item } from '../../lib/types';
 import SearchBar from '../../components/SearchBar';
 import ItemCard from '../../components/ItemCard';
 import BarcodeScanner from '../../components/BarcodeScanner';
-import { Search, Filter, ScanBarcode } from 'lucide-react';
+import { Search, Filter, ScanBarcode, Camera, XCircle } from 'lucide-react';
 
 export default function InventoryScreen() {
   const [query, setQuery] = useState('');
@@ -15,6 +15,10 @@ export default function InventoryScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showScanner, setShowScanner] = useState(false);
+  
+  // Visual Search state
+  const [visualSearchDesc, setVisualSearchDesc] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Debounce query
   useEffect(() => {
@@ -25,6 +29,8 @@ export default function InventoryScreen() {
   }, [query]);
 
   const fetchItems = useCallback(async (searchQuery: string) => {
+    if (visualSearchDesc) return; // Skip normal fetch if we are showing visual search results
+    
     setLoading(true);
     setError(null);
     try {
@@ -51,11 +57,63 @@ export default function InventoryScreen() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [visualSearchDesc]);
 
   useEffect(() => {
     fetchItems(debouncedQuery);
   }, [debouncedQuery, fetchItems]);
+
+  const handleVisualSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setLoading(true);
+    setError(null);
+    setVisualSearchDesc(null);
+    
+    try {
+      // 1. Convert to base64
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      await new Promise(resolve => reader.onload = resolve);
+      const base64Image = reader.result as string;
+
+      // 2. Call API to get embedding and description
+      const res = await fetch('/api/embed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: base64Image }),
+      });
+      const data = await res.json();
+      
+      if (!res.ok) throw new Error(data.error || 'Failed to analyze image');
+      if (!data.vector) throw new Error('No embedding returned');
+
+      // 3. Search Supabase
+      const { data: matchedItems, error: rpcError } = await supabase.rpc('search_items', {
+        query_embedding: data.vector,
+        match_threshold: 0.1, // Adjust as needed
+        match_count: 20
+      });
+
+      if (rpcError) throw rpcError;
+      
+      setVisualSearchDesc(data.description);
+      setItems(matchedItems as Item[] || []);
+      setQuery(''); // Clear text search
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'Visual search failed');
+    } finally {
+      setLoading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const clearVisualSearch = () => {
+    setVisualSearchDesc(null);
+    fetchItems(query);
+  };
 
   return (
     <div style={{ flex: 1, backgroundColor: 'var(--background)' }}>
@@ -91,7 +149,8 @@ export default function InventoryScreen() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <SearchBar value={query} onChangeText={setQuery} />
           
-          <button style={{
+          {/* Visual Search Button */}
+          <label style={{
             width: '48px',
             height: '48px',
             borderRadius: '24px',
@@ -99,11 +158,40 @@ export default function InventoryScreen() {
             border: '1px solid var(--border)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            cursor: 'pointer'
           }}>
-            <Filter size={20} color="var(--text)" />
-          </button>
+            <Camera size={20} color="var(--text)" />
+            <input 
+              type="file" 
+              accept="image/*" 
+              capture="environment" 
+              onChange={handleVisualSearch} 
+              style={{ display: 'none' }} 
+              ref={fileInputRef}
+            />
+          </label>
         </div>
+
+        {visualSearchDesc && (
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            padding: '12px 16px', 
+            backgroundColor: '#F3F4F6', 
+            borderRadius: '12px',
+            border: '1px solid #E5E7EB'
+          }}>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase' }}>Visual Search Matches For</p>
+              <p style={{ fontSize: '14px', color: 'var(--text)', lineHeight: '20px' }}>{visualSearchDesc}</p>
+            </div>
+            <button onClick={clearVisualSearch} style={{ padding: '8px' }}>
+              <XCircle size={20} color="var(--text-muted)" />
+            </button>
+          </div>
+        )}
       </div>
 
       {error && (

@@ -131,7 +131,24 @@ export default function AddItemScreen() {
         .eq('id', user.id)
         .single();
 
-      // 4. Insert Item
+      // 4. Generate Semantic Embedding
+      let search_embedding = null;
+      try {
+        const itemDescription = `[Name: ${name}] [Department: ${department}] [Color: ${colour || ''}] [Size: ${size || ''}]`;
+        const embedRes = await fetch('/api/embed', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: itemDescription }),
+        });
+        const embedData = await embedRes.json();
+        if (embedData.vector) {
+          search_embedding = embedData.vector;
+        }
+      } catch (e) {
+        console.error("Failed to generate semantic embedding", e);
+      }
+
+      // 5. Insert Item
       const { error: insertError } = await supabase.from('items').insert({
         name,
         long_code: longCode || null,
@@ -146,6 +163,7 @@ export default function AddItemScreen() {
         photos: uploadedUrls,
         added_by: user.id,
         store_added: profile?.primary_store || 'Unknown',
+        search_embedding: search_embedding,
       });
 
       if (insertError) throw insertError;
